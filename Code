@@ -1,0 +1,71 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.linear_model import LinearRegression
+from math import sqrt
+
+# Step 1: Data Understanding and Cleaning
+train_data = pd.read_csv('Housing-project-train-data.csv')
+test_data = pd.read_csv('Hosuing-project-test-data.csv')
+
+# Handle Missing Values (Imputation or Removal)
+test_data = test_data.fillna(test_data.mean())
+
+# Data Preprocessing (Encoding, Scaling)
+train_data['LotFrontage'].fillna(train_data['LotFrontage'].mean(), inplace=True)
+train_data = pd.get_dummies(train_data, columns=['Neighborhood'], drop_first=True)
+
+# Step 2: Exploratory Data Analysis (EDA)
+sns.pairplot(train_data, x_vars=['LotArea', 'OverallQual'], y_vars=['SalePrice'], kind='scatter')
+plt.show()
+
+correlation_matrix = train_data.corr()
+sns.heatmap(correlation_matrix, annot=True)
+plt.show()
+
+# Feature Engineering
+train_data['TotalSF'] = train_data['1stFlrSF'] + train_data['2ndFlrSF']
+
+# Feature Selection (you can add more features here)
+features = ['LotArea', 'OverallQual', 'TotalSF']
+
+# Step 3: Model Building and Evaluation
+
+# Split data into training and testing sets
+X = train_data.drop(columns=['SalePrice'])
+y = train_data['SalePrice']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train different models
+model_lr = LinearRegression()
+model_rf = RandomForestRegressor()
+
+model_lr.fit(X_train, y_train)
+model_rf.fit(X_train, y_train)
+
+# Make predictions
+y_pred_lr = model_lr.predict(X_test)
+y_pred_rf = model_rf.predict(X_test)
+
+mse_lr = mean_squared_error(y_test, y_pred_lr)
+r2_lr = r2_score(y_test, y_pred_lr)
+rmse_lr = sqrt(mse_lr)
+
+mse_rf = mean_squared_error(y_test, y_pred_rf)
+r2_rf = r2_score(y_test, y_pred_rf)
+rmse_rf = sqrt(mse_rf)
+
+print(f'Linear Regression - MSE: {mse_lr}, R2: {r2_lr}, RMSE: {rmse_lr}')
+print(f'Random Forest - MSE: {mse_rf}, R2: {r2_rf}, RMSE: {rmse_rf}')
+
+# Step 4: Final Model Selection and Testing
+test_predictions_rf = model_rf.predict(test_data)
+
+# Save predictions to a file
+test_data['Predicted_Price'] = test_predictions_rf
+test_data.to_csv('predicted_prices.csv', index=False)
